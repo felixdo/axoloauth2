@@ -1,0 +1,9 @@
+#!/usr/bin/env bb
+(require '[axoloauth2.core :as axo]
+         '[babashka.cli :as cli])
+(let [opts (cli/parse-opts *command-line-args*)]
+  (if-let [[env _] (first opts)]
+    (println (axo/get-or-refresh-token env :access_token))
+    (do
+      (println "Usage: axoloauth2 [--[profile]]")
+      (System/exit 1))))
