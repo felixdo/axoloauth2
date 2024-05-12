@@ -4,7 +4,7 @@
             [deps-deploy.deps-deploy :as dd]
             ))
 
-(def lib 'axoloauth2)
+(def lib 'com.github.felixdo/axoloauth2)
 (def version "0.1.0-SNAPSHOT")
 #_ ; alternatively, use MAJOR.MINOR.COMMITS:
 (def version (format "1.0.%s" (b/git-count-revs nil)))
