@@ -20,3 +20,5 @@ jobs:
     - uses: DeLaGuardo/setup-clojure@12.5
       with:
         cli: 1.11.3.1463
+    - name: Build Jar
+      run: clojure -T:build jar
