@@ -97,7 +97,7 @@
       (select-keys [:access_token :id_token :refresh_token])))
 
 (defn boring-login-response-body []
-  (slurp (clojure.java.io/resource "login.html")))
+  (slurp (clojure.java.io/resource "axoloauth2/login.html")))
 
 (defn cool-login-response-body []
   (let [cool-html (fs/path config-base "login.html")]
