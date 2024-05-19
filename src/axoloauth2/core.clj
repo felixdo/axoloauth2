@@ -107,8 +107,8 @@
 
 (defn login-response []
   (str "HTTP/1.1 200 OK
-Content-Type: text/html
-Content-Length: " (count (cool-login-response-body)) "
+Content-Type: text/html; charset=utf-8
+Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
 
 " (cool-login-response-body)))
 
