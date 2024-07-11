@@ -212,7 +212,7 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
   "Get a token of given type. config is a map storing required oauth parameters:
   If the previously stored token has expired try to refresh it and if the refresh token has also
   expired, run the authoriztion code flow, which will open a browser and ask for your password.
-  Then persists the new tokens in .cookidoom-clj/freak/ and returns the token of the asked type which normally
+  Then persists the new tokens in ~/.cache/axoloauth2 and returns the token of the asked type which normally
   is :access_token"
   [alias token-type]
   (let [oldtoken (read-token-cache alias)
