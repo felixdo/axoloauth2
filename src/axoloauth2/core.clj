@@ -48,10 +48,11 @@
     (fs/create-dirs (fs/parent f))
     (with-open [w (io/writer f)]
       (json/generate-stream content w))
-    (Files/setPosixFilePermissions
-     (.toPath f)
-     #{PosixFilePermission/OWNER_READ
-       PosixFilePermission/OWNER_WRITE}))
+    (when (not (fs/windows?))
+      (Files/setPosixFilePermissions
+       (.toPath f)
+       #{PosixFilePermission/OWNER_READ
+         PosixFilePermission/OWNER_WRITE})))
   content)
 
 (defn decode-base64 [to-decode]
