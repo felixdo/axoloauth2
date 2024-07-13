@@ -21,28 +21,30 @@
   (str "http://localhost:" port redirect-path))
 
 (defonce config-base
-  (fs/xdg-config-home xdg-app))
+  (or (System/getenv "AXOLOAUTH2_CONFIG_DIR")
+      (fs/xdg-config-home xdg-app)))
 
-(defn config-path
-  [alias]
-  (fs/path config-base (str (name alias) ".edn")))
+(defn profile-path
+  [profile]
+  (fs/path config-base (str (name profile) ".edn")))
 
 (defonce cache-base
-  (fs/xdg-cache-home xdg-app))
+  (or (System/getenv "AXOLOAUTH2_CACHE_DIR")
+      (fs/xdg-cache-home xdg-app)))
 
 (defn cache-path
-  [alias]
-  (fs/path cache-base (str (name alias) ".json")))
+  [profile]
+  (fs/path cache-base (str (name profile) ".json")))
 
-(defn read-token-cache [alias]
-  (let [f (fs/file (cache-path alias))]
+(defn read-token-cache [profile]
+  (let [f (fs/file (cache-path profile))]
     (when (fs/regular-file? f)
       (with-open [r (io/reader f)]
         (json/parse-stream r true)))))
 
 (defn write-token-cache
-  [alias content]
-  (let [f (fs/file (cache-path alias))]
+  [profile content]
+  (let [f (fs/file (cache-path profile))]
     (fs/create-dirs (fs/parent f))
     (with-open [w (io/writer f)]
       (json/generate-stream content w))
@@ -200,12 +202,28 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
             (.close server)))))
 
 (defn restart-oauth2-flow [config]
-  (let [{:keys [code redirect-port verifier]} (get-authorization-code config)]
-    (-> (get-oauth2-token config code redirect-port verifier)
-        (select-keys [:access_token :refresh_token :id_token]))))
+  (case (:grant_type config)
+    "authorization_code" (let [{:keys [code redirect-port verifier]} (get-authorization-code config)]
+                           (-> (get-oauth2-token config code redirect-port verifier)
+                               (select-keys [:access_token :refresh_token :id_token])))
+    "client_credentials" (let [{:keys [client_id client_secret token_uri]} config]
+                           (-> (http/post token_uri
+                                          {
+                                           :basic-auth [client_id client_secret]
+                                           :form-params
+                                           {
+                                            :grant_type "client_credentials"
+                                            :client_id client_id
+                                            :client_secret client_secret
+                                            }
+                                           })
+                               :body
+                               (json/parse-string true)
+                               (select-keys [:access_token])))
+    (throw (ex-info "Usupported flow"))))
 
-(defn read-config [alias]
-  (with-open [r (java.io.PushbackReader. (io/reader (fs/file (config-path alias))))]
+(defn read-profile [profile]
+  (with-open [r (java.io.PushbackReader. (io/reader (fs/file (profile-path profile))))]
     (edn/read r)))
 
 (defn get-or-refresh-token
@@ -214,30 +232,18 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
   expired, run the authoriztion code flow, which will open a browser and ask for your password.
   Then persists the new tokens in ~/.cache/axoloauth2 and returns the token of the asked type which normally
   is :access_token"
-  [alias token-type]
-  (let [oldtoken (read-token-cache alias)
+  [profile token-type]
+  (let [oldtoken (read-token-cache profile)
         refresh-token (:refresh_token oldtoken)
-        oauth-config (read-config alias)
+        oauth-config (read-profile profile)
         newtoken (if (expired? (get oldtoken token-type))
                    (write-token-cache
-                    alias
+                    profile
                     (if refresh-token
                       (refresh-oauth2-token oauth-config refresh-token)
                       (restart-oauth2-flow oauth-config)))
                    oldtoken)]
     (get newtoken token-type)))
-
-(defn get-client-credentials-token
-  "Debug helper to fetch token via client_credentials flow"
-  [client-id client-secret token-endpoint]
-  (http/post token-endpoint
-               { :basic-auth [client-id client-secret ]
-                :form-params
-                {
-                 :grant_type "client_credentials"
-                 :client_id client-id
-                 :client_secret client-secret
-                 }}))
 
 (comment
   (get-or-refresh-token :nonprod :access_token)
