@@ -224,8 +224,13 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
     (throw (ex-info "Usupported flow"))))
 
 (defn read-profile [profile]
-  (with-open [r (java.io.PushbackReader. (io/reader (fs/file (profile-path profile))))]
-    (edn/read r)))
+  (let [p (profile-path profile)
+        loc (if (fs/regular-file? p)
+              (fs/file p)
+              (io/resource (str "axoloauth2/" (name profile) ".edn")))]
+    (when loc
+      (with-open [r (java.io.PushbackReader. (io/reader loc))]
+        (edn/read r)))))
 
 (defn get-or-refresh-token
   "Get a token of given type. config is a map storing required oauth parameters:
