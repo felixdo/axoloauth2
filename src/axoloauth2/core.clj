@@ -248,9 +248,10 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
         newtoken (if (expired? (get oldtoken token-type))
                    (write-token-cache
                     profile
-                    (if refresh-token
+                    (if (expired? refresh-token)
+                      (restart-oauth2-flow oauth-config)
                       (refresh-oauth2-token oauth-config refresh-token)
-                      (restart-oauth2-flow oauth-config)))
+                      ))
                    oldtoken)]
     (get newtoken token-type)))
 
