@@ -67,13 +67,16 @@
     ))
 
 (defn expired?
-  "expecting a jwt token, checks if exp has passed, i.e. if the token has expired"
+  "expecting a jwt token, checks if exp has passed, i.e. if the token has expired
+   or or will expire within the next 60 seconds"
   [token]
   (or
    (nil? token)
-   (let [now (Instant/now)
+   (let [in-a-minute (.. (Instant/now)
+                         (plusSeconds 60))
          exp (expires token)]
-     (.isAfter now exp))))
+     (.isAfter in-a-minute exp))))
+
 
 (defn get-oauth2-token
   [config code redirect-port code-verifier]
