@@ -231,9 +231,11 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
         loc (if (fs/regular-file? p)
               (fs/file p)
               (io/resource (str "axoloauth2/" (name profile) ".edn")))]
-    (when loc
+    (if loc
       (with-open [r (java.io.PushbackReader. (io/reader loc))]
-        (edn/read r)))))
+        (edn/read r))
+      (throw (ex-info "Can't find profile at expected path"
+                      {:path p})))))
 
 (defn get-or-refresh-token
   "Get a token of given type. config is a map storing required oauth parameters:
