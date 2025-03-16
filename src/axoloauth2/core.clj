@@ -224,7 +224,7 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
                                :body
                                (json/parse-string true)
                                (select-keys [:access_token])))
-    (throw (ex-info "Usupported flow"))))
+    (throw (ex-info "Unsupported grant_type:" config))))
 
 (defn read-profile [profile]
   (let [p (profile-path profile)
