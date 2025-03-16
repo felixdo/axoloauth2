@@ -237,6 +237,9 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
       (throw (ex-info "Can't find profile at expected path"
                       {:path p})))))
 
+
+(def token-lock (Object.))
+
 (defn get-or-refresh-token
   "Get a token of given type. config is a map storing required oauth parameters:
   If the previously stored token has expired try to refresh it and if the refresh token has also
@@ -246,16 +249,19 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
   [profile token-type]
   (let [oldtoken (read-token-cache profile)
         refresh-token (:refresh_token oldtoken)
-        oauth-config (read-profile profile)
-        newtoken (if (expired? (get oldtoken token-type))
-                   (write-token-cache
-                    profile
-                    (if (expired? refresh-token)
-                      (restart-oauth2-flow oauth-config)
-                      (refresh-oauth2-token oauth-config refresh-token)
-                      ))
-                   oldtoken)]
-    (get newtoken token-type)))
+        oauth-config (read-profile profile)]
+    (if (expired? (get oldtoken token-type))
+      (locking token-lock
+        (let [oldtoken (read-token-cache profile)
+              refresh-token (:refresh_token oldtoken)]
+          (if (expired? (get oldtoken token-type))
+            (let [newtoken (if (expired? refresh-token)
+                             (restart-oauth2-flow oauth-config)
+                             (refresh-oauth2-token oauth-config refresh-token))]
+              (write-token-cache profile newtoken)
+              (get newtoken token-type))
+            (get oldtoken token-type))))
+      (get oldtoken token-type))))
 
 (comment
   (get-or-refresh-token :nonprod :access_token)
