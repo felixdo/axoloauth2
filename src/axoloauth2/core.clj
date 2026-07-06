@@ -13,6 +13,8 @@
    [babashka.http-client :as http]
    [babashka.fs :as fs]
    [clojure.edn :as edn]
+   [babashka.process :refer [shell]]
+   [clojure.string :as str]
    ))
 
 (defonce xdg-app "axoloauth2")
@@ -249,7 +251,15 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
               (io/resource (str "axoloauth2/" (name profile) ".edn")))]
     (if loc
       (with-open [r (java.io.PushbackReader. (io/reader loc))]
-        (edn/read r))
+        (edn/read
+         {:readers
+          {'op (fn [v] (-> (shell {:out :string}
+                                  (str "op read " v))
+                           :out
+                           str/trim
+                           ))
+           }}
+         r))
       (throw (ex-info "Can't find profile at expected path"
                       {:path p})))))
 
