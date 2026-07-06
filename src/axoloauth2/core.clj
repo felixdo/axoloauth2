@@ -224,6 +224,22 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
                                :body
                                (json/parse-string true)
                                (select-keys [:access_token])))
+    "password" (let [{:keys [client_id client_secret token_uri username password]} config]
+                 (-> (http/post token_uri
+                                {
+                                 :basic-auth [client_id client_secret]
+                                 :form-params
+                                 {
+                                  :grant_type "password"
+                                  :client_id client_id
+                                  :client_secret client_secret
+                                  :username username
+                                  :password password
+                                  }
+                                 })
+                     :body
+                     (json/parse-string true)
+                     (select-keys [:access_token])))
     (throw (ex-info "Unsupported grant_type:" config))))
 
 (defn read-profile [profile]
