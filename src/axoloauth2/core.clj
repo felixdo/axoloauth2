@@ -274,14 +274,14 @@ Content-Length: " (count (.. (cool-login-response-body) (getBytes "UTF-8")))"
   is :access_token"
   [profile token-type]
   (let [oldtoken (read-token-cache profile)
-        refresh-token (:refresh_token oldtoken)
-        oauth-config (read-profile profile)]
+        refresh-token (:refresh_token oldtoken)]
     (if (expired? (get oldtoken token-type))
       (locking token-lock
         (let [oldtoken (read-token-cache profile)
               refresh-token (:refresh_token oldtoken)]
           (if (expired? (get oldtoken token-type))
-            (let [newtoken (if (expired? refresh-token)
+            (let [oauth-config (read-profile profile)
+                  newtoken (if (expired? refresh-token)
                              (restart-oauth2-flow oauth-config)
                              (refresh-oauth2-token oauth-config refresh-token))]
               (write-token-cache profile newtoken)
